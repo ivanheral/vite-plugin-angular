@@ -1,0 +1,54 @@
+{
+  "name": "vite-plugin-angular",
+  "version": "1.0.0",
+  "description": "Vite plugin to inline Angular templateUrl and styleUrls, compile Angular decorators, and apply the Angular Linker.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "prepublishOnly": "npm run build && npm run test",
+    "release:patch": "npm version patch && git push && git push --tags && npm publish",
+    "release:minor": "npm version minor && git push && git push --tags && npm publish",
+    "release:major": "npm version major && git push && git push --tags && npm publish"
+  },
+  "keywords": [
+    "vite",
+    "vite-plugin",
+    "angular",
+    "templateUrl",
+    "styleUrls",
+    "ivy",
+    "linker",
+    "decorators",
+    "hmr",
+    "aot"
+  ],
+  "author": "Iván Hernández Alvarez",
+  "license": "MIT",
+  "dependencies": {
+    "magic-string": "^0.30.21"
+  },
+  "devDependencies": {
+    "@types/node": "^26.0.0",
+    "@vitest/coverage-v8": "^4.1.9",
+    "typescript": "^6.0.3",
+    "vite": "^8.1.0",
+    "vitest": "*"
+  },
+  "peerDependencies": {
+    "@angular/compiler-cli": ">=12.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@angular/compiler-cli": {
+      "optional": true
+    }
+  }
+}
