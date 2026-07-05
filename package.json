@@ -1,5 +1,5 @@
 {
-  "name": "vite-plugin-angular",
+  "name": "@ivanheral/vite-plugin-angular",
   "version": "1.0.0",
   "description": "Vite plugin to inline Angular templateUrl and styleUrls, compile Angular decorators, and apply the Angular Linker.",
   "main": "dist/index.js",
