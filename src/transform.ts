@@ -1,5 +1,6 @@
 import MagicString from 'magic-string';
 import ts from 'typescript';
+import { createHash } from 'crypto';
 
 export interface PluginOptions {
   styleInjection?: 'inline' | 'global';
@@ -31,8 +32,8 @@ export async function applyLinker(code: string, id: string): Promise<TransformRe
     const cached = linkerCache.get(id);
     if (cached !== undefined) return cached;
   }
-  const cacheKey = require('crypto')
-    .createHash('sha256')
+  // Mejora 2: createHash importado a nivel de módulo, evita require() dinámico en hot path
+  const cacheKey = createHash('sha256')
     .update(id)
     .update(code)
     .digest('hex');
@@ -113,7 +114,8 @@ function getDecoratorObjectBlock(code: string, startIdx: number): { start: numbe
 }
 
 function processDecorators(s: MagicString, code: string, id: string, injection: 'inline' | 'global', imports: string[]): boolean {
-  if (!code.includes('templateUrl') && !code.includes('styleUrls') && !code.includes('styleUrl') && !code.includes('styles')) return false;
+  // Mejora 3: guard más preciso — 'styles\s*:' evita falsos positivos de imports/comentarios
+  if (!code.includes('templateUrl') && !code.includes('styleUrls') && !code.includes('styleUrl') && !/styles\s*:/.test(code)) return false;
   let changed = false, tplCount = 0, styleCount = 0;
   const componentKeyword = '@Component';
   let startIdx = 0;
@@ -254,6 +256,9 @@ function emitSignalMetadata(type: string, propName: string, aliasValue: string |
 
 function processJitSignals(s: MagicString, code: string, id: string): boolean {
   if (!code.includes('@Component') && !code.includes('@Directive')) return false;
+  // Mejora 4: guard rápido antes del costoso parseo del AST (>10ms por archivo)
+  const SIGNAL_KEYWORDS = ['input(', 'model(', 'output(', 'viewChild(', 'viewChildren(', 'contentChild(', 'contentChildren('];
+  if (!SIGNAL_KEYWORDS.some(kw => code.includes(kw))) return false;
   const sourceFile = ts.createSourceFile(id, code, ts.ScriptTarget.Latest, true);
   let changed = false;
   const importsToInject = new Set<string>();

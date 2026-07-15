@@ -4,12 +4,15 @@ import { rootRequire, runAoTCompilation, getJavaScriptTransformerClass } from '.
 import { DiskCache } from './cache';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as os from 'os';
+import { createHash } from 'crypto';
 
 export type { PluginOptions };
 
 const LOG = '[vite-plugin-angular]';
 const IVY_FILTER = /\.[m]?js$/;
-const cpuWorkers = Math.max(1, require('os').cpus().length - 1);
+// Mejora 6: import estático de os, límite de 8 workers (suficiente para cualquier máquina)
+const cpuWorkers = Math.min(8, Math.max(1, os.cpus().length - 1));
 
 function createLinkerEsbuildPlugin() {
   return {
@@ -131,8 +134,8 @@ export default function vitePluginAngularTemplate(options?: PluginOptions): Plug
         const cached = optimizerCache.get(id);
         if (cached) return cached;
         const transformedCode = result ? result.code : code;
-        const cacheKey = require('crypto')
-          .createHash('sha256')
+        // Mejora 5: createHash importado a nivel de módulo, evita require() dinámico en hot path
+        const cacheKey = createHash('sha256')
           .update(id)
           .update(transformedCode)
           .update(JSON.stringify({ jit: opts.jit, minify: opts.minify }))

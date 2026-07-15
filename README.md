@@ -1,139 +1,154 @@
 # vite-plugin-angular
 
 <!-- prettier-ignore-start -->
-[![NPM Version](https://img.shields.io/npm/v/vite-plugin-angular.svg?style=flat-square)](https://www.npmjs.com/package/vite-plugin-angular)
-[![NPM Downloads](https://img.shields.io/npm/dw/vite-plugin-angular.svg?style=flat-square)](https://www.npmjs.com/package/vite-plugin-angular)
+[![NPM Version](https://img.shields.io/npm/v/@ivanheral/vite-plugin-angular.svg?style=flat-square)](https://www.npmjs.com/package/@ivanheral/vite-plugin-angular)
+[![NPM Downloads](https://img.shields.io/npm/dm/@ivanheral/vite-plugin-angular.svg?style=flat-square)](https://www.npmjs.com/package/@ivanheral/vite-plugin-angular)
 [![Vite Plugin Registry](https://img.shields.io/badge/vite-plugin--registry-blue?logo=vite&style=flat-square)](https://registry.vite.dev/plugin/vite-plugin-angular)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 <!-- prettier-ignore-end -->
 
-`vite-plugin-angular` is a lightweight plugin that lets you build **Angular** applications using **Vite** instead of the traditional, slower Angular CLI. It gives you the best of both worlds: Angular's powerful framework structure combined with Vite's instant startups and ultra-fast hot reloading.
+A Vite plugin for building **Angular** applications. It handles Angular decorators, template compilation, the Ivy Linker, and Ahead-of-Time (AoT) compilation within the standard Vite build pipeline.
 
 ---
 
-## 🌟 What makes this plugin special?
+## Benchmark
 
-We have built-in advanced features that optimize your app automatically without requiring complex configurations:
+The following results were measured in an automated environment. Each tool was tested on the same Angular application under identical conditions. Results may vary depending on hardware and project size.
 
-### 1. Clutter-Free Workspace (Zero-Pollution Compilation)
-* **The Problem**: Other plugins generate temporary helper files directly inside your `src/` folder during compilation. If a build crashes, your project is left full of unwanted files.
-* **Our Solution**: We redirect all temporary compiler outputs to an isolated, hidden folder (`node_modules/.cache`). When the build finishes, we clean it up automatically. **Your source code folder remains 100% clean**.
+| Metric | Angular CLI | @analogjs/vite-plugin-angular | @ivanheral/vite-plugin-angular |
+| :--- | :---: | :---: | :---: |
+| **Dev Cold Start** | 3.60 s | 2.82 s | 725 ms |
+| **Production Build** | 3.55 s | 4.91 s | 3.13 s |
+| **Bundle Size** | 148.3 KB | 226.8 KB | 149.8 KB |
+| **Direct Dependencies** | — | 8 | 1 (`magic-string`) |
+| **Plugin LOC** | — | ~2,500 | ~650 |
 
-### 2. Smart Build Caching (Fast Successive Builds)
-* **The Problem**: Compiling a large Angular app from scratch every time you make a production build is slow.
-* **Our Solution**: The first build creates a cache. On successive builds, the plugin only recompiles the files you actually changed. This **cuts production build times in half**.
-
-### 3. Automatic "Zoneless" Detection (Saves Bundle Space)
-* Modern Angular (18+) allows you to run applications without `zone.js` (called **Zoneless** mode) to make them smaller and faster.
-* The plugin automatically checks your `main.ts` file. If you are using Zoneless, it automatically disables and excludes `zone.js` from your final app bundle, **saving you about 15 KB** without requiring manual configuration.
+> **Methodology**: Cold start is measured as the time from process launch until the dev server reports "ready". Production build time is the full `vite build` duration. Bundle size is the uncompressed JS output.
 
 ---
 
-## Features at a Glance
+## Features
 
-- ⚡ **Vite-Powered**: Enjoy instant server startups (under 1 second) and fast Hot Module Replacement (HMR).
-- 🛠️ **Smart Decorators**: Handles `@Component`, `@Directive`, and `@Injectable` decorators automatically.
-- 📉 **Automatic Minification**: Automatically compresses your HTML templates and CSS styles in production.
-- 🧬 **Modern Angular Support**: Fully compatible with Angular Signals (`input()`, `model()`, `output()`, etc.).
+- Handles `@Component`, `@Directive`, and `@Pipe` decorators (template inlining, style injection, HMR snippet).
+- Applies the Angular Ivy Linker to pre-compiled libraries in `node_modules` via esbuild/rolldown.
+- Supports Ahead-of-Time (AoT) compilation for production builds.
+- Automatically detects Zoneless mode and skips `zone.js` injection.
+- Compiles inline `styles: [...]` through Vite's PostCSS pipeline (Tailwind, CSS nesting, SCSS).
+- Compatible with Angular Signals (`input()`, `model()`, `output()`, `viewChild()`, etc.).
+- Supports `templateUrl` with Markdown (`.md`) and Pug (`.pug`) files.
+- Temporary AoT compiler outputs are written to `node_modules/.cache` and cleaned up after each build.
+- Disk-based and in-memory LRU caching for Linker and optimizer transforms.
 
 ---
 
 ## Installation
 
-Install the plugin using your favorite package manager:
-
 ```sh
 # npm
-npm install vite-plugin-angular --save-dev
+npm install @ivanheral/vite-plugin-angular --save-dev
 
 # pnpm
-pnpm add vite-plugin-angular -D
+pnpm add @ivanheral/vite-plugin-angular -D
 
 # yarn
-# yarn add vite-plugin-angular --dev
+yarn add @ivanheral/vite-plugin-angular --dev
 
 # bun
-bun add vite-plugin-angular --dev
+bun add @ivanheral/vite-plugin-angular --dev
 ```
 
 ---
 
-## Quick Start
-
-Simply import and add the plugin to your `vite.config.ts` or `vite.config.js` file:
+## Usage
 
 ```typescript
 import { defineConfig } from 'vite';
-import angular from 'vite-plugin-angular';
+import angular from '@ivanheral/vite-plugin-angular';
 
 export default defineConfig({
   plugins: [
-    angular({
-      styleInjection: 'inline', // Keeps component styles scoped and encapsulated
-      fast: true                // Enables ultra-fast dev mode startups
-    })
+    angular()
   ]
 });
 ```
 
+For development with faster startups:
+
+```typescript
+angular({
+  fast: true,           // Skips template type-checking in dev mode
+  styleInjection: 'inline'
+})
+```
+
+For optimized production builds:
+
+```typescript
+angular({
+  aot: true,            // Enables AoT, removes @angular/compiler from the bundle
+  minify: true
+})
+```
+
 ---
 
-## Configuration Options (`PluginOptions`)
-
-You can customize how the plugin works by passing these options:
+## Configuration
 
 | Option | Type | Default | Description |
 |---|---|---|---|
-| `styleInjection` | `'inline' \| 'global'` | `'inline'` | How component stylesheets are loaded. See details below. |
-| `fast` | `boolean` | `false` | Enables a simplified compilation path for faster development startups. |
-| `fastMode` | `'full' \| 'partial'` | `'full'` | Output compiler format (`full` for apps, `partial` for reusable libraries). |
-| `aot` | `boolean` | `false` | Enables Ahead-of-Time compilation for optimized production builds. |
-| `minify` | `boolean` | `true` | Compresses templates and styles in production to reduce bundle size. |
-| `tsconfigPath` | `string` | *Auto-detected* | Custom path to your `tsconfig.json`. (Defaults to `tsconfig.app.json` if present). |
-| `jit` | `boolean` | `true` | Enables Just-in-Time compilation injection for JIT files. |
-| `zoneless` | `boolean` | `false` | Manually forces Zoneless mode (disables `zone.js` bundle injection). |
+| `styleInjection` | `'inline' \| 'global'` | `'inline'` | Controls how component stylesheets are injected. `'inline'` preserves Angular's view encapsulation. `'global'` enables faster CSS HMR. |
+| `fast` | `boolean` | `false` | Skips template type-checking during development for faster cold starts. |
+| `fastMode` | `'full' \| 'partial'` | `'full'` | Compiler output format. Use `'partial'` when building reusable libraries. |
+| `aot` | `boolean` | `false` | Enables Ahead-of-Time compilation. Removes `@angular/compiler` from the production bundle. |
+| `minify` | `boolean` | `true` | Minifies HTML templates and CSS in production. |
+| `tsconfigPath` | `string` | auto | Path to the TypeScript config file. Defaults to `tsconfig.app.json` if present, otherwise `tsconfig.json`. |
+| `jit` | `boolean` | `true` | Controls whether JIT compiler imports are injected into the bootstrap file. |
+| `zoneless` | `boolean` | `false` | Disables `zone.js` injection. Detected automatically if `provideExperimentalZonelessChangeDetection` is found. |
 
-### Option Details Explained
+### `fast`
 
-#### `styleInjection`
-* **`'inline'` (Recommended)**: Loads and injects your CSS/SCSS styles locally into each component. This preserves Angular's **style scoping**, meaning styles in one component won't accidentally affect other parts of your app.
-* **`'global'`**: Injects styles globally. This enables instant CSS updates during development without reloading components, but styles will apply to the entire page.
+Disables template type-checking at dev time. The dev server starts in under 750 ms on most machines.
 
-#### `fast`
-* Set this to `true` to disable template type-checking during development. This gives you **instant server startups (under 700ms)**. 
-* *Tip*: It is recommended to run type-safety checks as a separate process in your build pipeline:
-  ```json
-  {
-    "scripts": {
-      "build": "ngc -p tsconfig.app.json --noEmit && vite build"
-    }
+If you rely on template type safety, run it as a separate step:
+
+```json
+{
+  "scripts": {
+    "type-check": "ngc -p tsconfig.app.json --noEmit",
+    "build": "npm run type-check && vite build"
   }
-  ```
+}
+```
 
-#### `aot`
-* When enabled (`true`) during `vite build`, templates are compiled statically. This completely removes the Angular compiler engine from the final bundle, **saving you ~80 KB** of download size for your users.
+### `aot`
+
+When set to `true` during a production build, the plugin runs the Angular compiler before Vite processes files. The compiled output is placed in `node_modules/.cache/vite-plugin-angular/aot-out` and deleted after the build. This removes `@angular/compiler` (~80 KB) from the final bundle.
+
+If AoT compilation fails, the build is aborted immediately to prevent shipping a broken bundle.
 
 ---
 
 ## Markdown & Pug Templates
 
-If you prefer writing templates in Markdown (`.md`) or Pug (`.pug`) instead of HTML, you can combine this plugin with standard Vite template loaders. The plugin will automatically recognize them:
+The plugin passes through `templateUrl` values for `.md` and `.pug` files without appending `?raw`, allowing other Vite plugins to process them:
 
 ```typescript
 @Component({
   selector: 'app-post',
-  templateUrl: './post.component.md' // Automatically loaded as markdown
+  templateUrl: './post.component.md'
 })
 export class PostComponent {}
 ```
 
 ---
 
-## How It Works Under the Hood
+## How It Works
 
-The plugin handles two main tasks behind the scenes to keep your app fast:
-1. **Angular Constants**: In production, it flags `ngDevMode: false`. This tells Vite's minifier to strip out all Angular development logs and debugging checks, shrinking your final file size.
-2. **esbuild Dependency Optimizer**: When you run the dev server for the first time, it automatically links pre-compiled libraries (like `@angular/core`) so they run seamlessly in the browser.
+1. **Decorator transform**: For each `.ts` file, the plugin rewrites `templateUrl` and `styleUrls`/`styleUrl` into static `import` statements that Vite can resolve and bundle normally.
+2. **Ivy Linker**: Libraries published as partial Ivy (containing `ɵɵngDeclare`) are linked at dependency pre-optimization time using `@babel/core` and `@angular/compiler-cli/linker/babel`. Results are cached on disk.
+3. **AoT compilation**: In production with `aot: true`, the Angular compiler runs via `@angular/compiler-cli` before Vite's transform phase, emitting JS files that replace the originals.
+4. **Constants**: `ngDevMode`, `ngJitMode`, and `ngI18nClosureMode` are set via `config.define` so Vite's minifier can eliminate dead code branches.
+5. **Optimizer**: If `@angular/build`'s `JavaScriptTransformer` is available, it is applied to Angular packages in `node_modules` during production builds for additional optimizations.
 
 ---
 
